@@ -8,7 +8,6 @@ from pymilvus import (
     connections, Collection, CollectionSchema,
     FieldSchema, DataType, utility,
 )
-import ollama
 from pathlib import Path
 from pdf2image import convert_from_path
 from embedding_functions import get_embedding_function
@@ -77,8 +76,6 @@ def ocr_image(image_path: str) -> str:
     print(f"[OCR] Processing: {Path(image_path).name} (backend={OCR_BACKEND})")
 
     nvidia_ocr_image(image_path)
-
-    # "both" — nvidia primary, ollama fallback
     try:
         text = nvidia_ocr_image(image_path)
         print(f"  [OCR] Nvidia succeeded for {Path(image_path).name}")
