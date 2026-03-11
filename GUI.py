@@ -19,7 +19,6 @@ except Exception:
 
 st.set_page_config(
     page_title="RAG Chat Interface",
-    page_icon="🔍",
     layout="wide"
 )
 
