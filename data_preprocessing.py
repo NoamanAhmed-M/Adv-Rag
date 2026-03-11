@@ -74,16 +74,13 @@ def nvidia_ocr_image(image_path: str) -> str:
 
 def ocr_image(image_path: str) -> str:
     print(f"[OCR] Processing: {Path(image_path).name} (backend={OCR_BACKEND})")
-
-    nvidia_ocr_image(image_path)
     try:
         text = nvidia_ocr_image(image_path)
         print(f"  [OCR] Nvidia succeeded for {Path(image_path).name}")
         return text
     except Exception as nvidia_err:
         print(f"  [OCR] Nvidia failed ({nvidia_err})")
-
-
+        return ""  
 # ══════════════════════════════════════════════════════════════════════════════
 # Milvus helpers
 # ══════════════════════════════════════════════════════════════════════════════
@@ -306,6 +303,13 @@ def clear_database():
     else:
         print(f"[Clear] Collection '{COLLECTION_NAME}' does not exist — nothing to drop.")
 
+    if os.path.exists(DATA_PATH):
+        for file in os.listdir(DATA_PATH):
+            file_path = os.path.join(DATA_PATH, file)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+                print(f"[Clear] Deleted local file: {file_path}")
+    print("[Clear] Local staging area cleared.")
 
 def main():
     print_config()
