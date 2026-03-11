@@ -19,6 +19,7 @@ except Exception:
 
 st.set_page_config(
     page_title="RAG Chat Interface",
+    page_icon="🔍",
     layout="wide"
 )
 
@@ -411,7 +412,7 @@ with st.sidebar:
     # ── Files in data folder (auth-gated) ─────────────────────────────────────
     with st.expander("Files in Data Folder"):
         if not st.session_state.authenticated:
-            st.caption("🔒 Login to view stored files")
+            st.caption("Login to view stored files")
         else:
             existing_files = sorted(os.listdir(DATA_PATH)) if os.path.exists(DATA_PATH) else []
             if existing_files:
@@ -509,9 +510,7 @@ if prompt := st.chat_input("Ask a question about your documents…"):
         except Exception as e:
             st.session_state.messages.append({
                 "role":    "assistant",
-                "content": f"Error: {str(e)}
-
-{traceback.format_exc()}",
+                "content": f"Error: {str(e)}\n\n{traceback.format_exc()}",
             })
 
     # 3. Single rerun AFTER everything is saved — renders the full history cleanly
