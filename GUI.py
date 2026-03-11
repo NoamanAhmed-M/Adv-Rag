@@ -19,6 +19,7 @@ except Exception:
 
 st.set_page_config(
     page_title="RAG Chat Interface",
+    page_icon="🔍",
     layout="wide"
 )
 
@@ -319,7 +320,7 @@ with st.sidebar:
     st.markdown('<div class="sidebar-section-header">Upload Documents</div>', unsafe_allow_html=True)
 
     if not st.session_state.authenticated:
-        st.caption("Login required to upload files")
+        st.caption("🔒 Login required to upload files")
         st.file_uploader(
             "Add files to knowledge base",
             type=["pdf", "png", "jpg", "jpeg", "tiff", "bmp"],
@@ -357,7 +358,7 @@ with st.sidebar:
     st.markdown('<div class="sidebar-section-header">Database</div>', unsafe_allow_html=True)
 
     if not st.session_state.authenticated:
-        st.caption("Login required for database operations")
+        st.caption("🔒 Login required for database operations")
     else:
         # Step 1 — show the "Clear Database" button
         if not st.session_state.confirm_clear:
@@ -367,7 +368,7 @@ with st.sidebar:
 
         # Step 2 — confirmation dialog
         else:
-            st.warning("This will permanently delete all vectors from Zilliz Cloud.")
+            st.warning("⚠️ This will permanently delete all vectors from Zilliz Cloud.")
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("✓ Confirm Delete", type="primary", use_container_width=True):
@@ -411,7 +412,7 @@ with st.sidebar:
     # ── Files in data folder (auth-gated) ─────────────────────────────────────
     with st.expander("Files in Data Folder"):
         if not st.session_state.authenticated:
-            st.caption("Login to view stored files")
+            st.caption("🔒 Login to view stored files")
         else:
             existing_files = sorted(os.listdir(DATA_PATH)) if os.path.exists(DATA_PATH) else []
             if existing_files:
@@ -457,63 +458,73 @@ for message in st.session_state.messages:
 
 # Chat input
 if prompt := st.chat_input("Ask a question about your documents…"):
-    # 1. Save user message immediately so it always appears
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # 2. Run the query and save result — NO st.rerun() anywhere here.
-    #    The history loop above will render everything on the next natural Streamlit cycle.
-    with st.spinner("Searching documents…"):
-        try:
-            from Query import query_rag
-            answer_text, result, hal_score = query_rag(prompt)
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-            # Resolve display text
-            if isinstance(answer_text, str) and answer_text:
-                display_text = answer_text
-            elif hasattr(result, "content"):
-                display_text = result.content
-            elif isinstance(result, str):
-                display_text = result
-            else:
-                display_text = str(result)
+    with st.chat_message("assistant"):
+        with st.spinner("Searching documents…"):
+            try:
+                from Query import query_rag
+                answer_text, result, hal_score = query_rag(prompt)
 
-            # Resolve score
-            if hasattr(hal_score, "binary_score"):
-                score_val = hal_score.binary_score
-            elif isinstance(hal_score, str):
-                score_val = hal_score
-            else:
-                score_val = "not_applicable"
+                if isinstance(answer_text, str) and answer_text:
+                    display_text = answer_text
+                elif hasattr(result, "content"):
+                    display_text = result.content
+                elif isinstance(result, str):
+                    display_text = result
+                else:
+                    display_text = str(result)
 
-            # Resolve sources / segments
-            sources, segments = [], []
-            if hasattr(result, "source"):
-                sources = result.source if isinstance(result.source, list) else [result.source]
-            if hasattr(result, "segment"):
-                segments = result.segment if isinstance(result.segment, list) else [result.segment]
+                st.markdown(display_text)
 
-            st.session_state.messages.append({
-                "role":      "assistant",
-                "content":   display_text,
-                "sources":   sources,
-                "segments":  segments,
-                "hal_score": score_val,
-            })
+                if hasattr(hal_score, "binary_score"):
+                    score_val = hal_score.binary_score
+                elif isinstance(hal_score, str):
+                    score_val = hal_score
+                else:
+                    score_val = "not_applicable"
 
-        except RuntimeError as e:
-            st.session_state.messages.append({
-                "role":    "assistant",
-                "content": str(e),
-            })
+                sources, segments = [], []
+                if hasattr(result, "source"):
+                    sources  = result.source  if isinstance(result.source,  list) else [result.source]
+                if hasattr(result, "segment"):
+                    segments = result.segment if isinstance(result.segment, list) else [result.segment]
 
-        except Exception as e:
-            st.session_state.messages.append({
-                "role":    "assistant",
-                "content": f"Error: {str(e)}\n\n{traceback.format_exc()}",
-            })
+                with st.expander(f"Sources ({len(sources)})"):
+                    if score_val == "yes":
+                        st.success("Grounded in documents")
+                    elif score_val == "no":
+                        st.warning("May not be fully grounded")
+                    for i, src in enumerate(sources):
+                        st.markdown(f"**Source:** `{os.path.basename(src)}`")
+                        st.caption(f"Full path: {src}")
+                        if i < len(segments) and segments[i]:
+                            st.markdown("**Retrieved Segment:**")
+                            st.code(segments[i], language=None)
+                        if i < len(sources) - 1:
+                            st.divider()
 
-    # 3. Single rerun AFTER everything is saved — renders the full history cleanly
-    st.rerun()
+                st.session_state.messages.append({
+                    "role":      "assistant",
+                    "content":   display_text,
+                    "sources":   sources,
+                    "segments":  segments,
+                    "hal_score": score_val,
+                })
+
+            except RuntimeError as e:
+                msg = str(e)
+                st.warning(msg, icon="📭")
+                st.session_state.messages.append({"role": "assistant", "content": msg})
+
+            except Exception as e:
+                error_msg = f"Error: {str(e)}"
+                st.error(error_msg)
+                st.error(traceback.format_exc())
+                st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
 st.divider()
 st.caption("Built with Python · LangChain · Zilliz Cloud · Nvidia NIM")
