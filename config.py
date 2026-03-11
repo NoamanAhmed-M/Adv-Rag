@@ -1,6 +1,4 @@
-"""
-config.py — Simplified version
-"""
+
 import os
 
 # Try to get from Streamlit secrets first, then environment variables
@@ -13,6 +11,7 @@ try:
     COLLECTION_NAME = st.secrets.get("COLLECTION_NAME", os.getenv("COLLECTION_NAME", "documents"))
     EMBEDDING_DIM = int(st.secrets.get("EMBEDDING_DIM", os.getenv("EMBEDDING_DIM", "4096")))
     LLM_MODEL = st.secrets.get("LLM_MODEL", os.getenv("LLM_MODEL", "nvidia/nemotron-3-nano-30b-a3b"))
+    ADMIN_PASSWORD = st.secrets.get("ADMIN_PASSWORD", os.getenv("ADMIN_PASSWORD", "admin123"))
 except:
     # Fallback to environment variables only
     ZILLIZ_URI = os.getenv("ZILLIZ_URI", "")
@@ -22,6 +21,7 @@ except:
     COLLECTION_NAME = os.getenv("COLLECTION_NAME", "documents")
     EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "4096"))
     LLM_MODEL = os.getenv("LLM_MODEL", "nvidia/nemotron-3-nano-30b-a3b")
+    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 
 # NVIDIA URLs
 NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/ocr"
@@ -47,4 +47,5 @@ def print_config():
     print(f"  EMBEDDING_DIM   : {EMBEDDING_DIM}")
     print(f"  LLM_MODEL       : {LLM_MODEL}")
     print(f"  NVIDIA_API_KEY  : {'SET ✓' if NVIDIA_API_KEY else 'NOT SET ✗'}")
+    print(f"  ADMIN_PASSWORD  : {'SET ✓' if ADMIN_PASSWORD else 'NOT SET ✗'}")
     print("=" * 50)
