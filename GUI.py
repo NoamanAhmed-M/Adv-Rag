@@ -165,7 +165,13 @@ with st.sidebar:
                     st.info("This might be due to missing langchain_community. Installing required packages...")
                     
                     # Fallback: Try alternative import or provide instructions
-                    st.warning("""
-                    The `langchain_community` module is missing. To fix this:
-                    
-                    1. Add to requirements.txt:
+                    st.warning(
+                        "The `langchain_community` module is missing. To fix this:\n\n"
+                        "1. Add to requirements.txt:\n"
+                        "   ```\n"
+                        "   langchain-community>=0.2.0\n"
+                        "   ```\n"
+                        "2. Re-deploy the app\n\n"
+                        "For now, database operations are disabled."
+                    )
+                    st.stop()
