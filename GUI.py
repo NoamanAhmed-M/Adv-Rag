@@ -248,10 +248,44 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if "confirm_clear" not in st.session_state:
     st.session_state.confirm_clear = False
+if "uploaded_file_names" not in st.session_state:
+    st.session_state.uploaded_file_names = []
 
 # ── Data path ─────────────────────────────────────────────────────────────────
 DATA_PATH = "/tmp/rag_data"
 os.makedirs(DATA_PATH, exist_ok=True)
+
+
+def get_indexed_files() -> list[str]:
+    """Query Zilliz for distinct source filenames actually stored in the collection."""
+    try:
+        from data_preprocessing import connect_milvus
+        from config import COLLECTION_NAME
+        from pymilvus import Collection, utility
+
+        connect_milvus()
+        if not utility.has_collection(COLLECTION_NAME):
+            return []
+
+        collection = Collection(COLLECTION_NAME)
+        collection.load()
+
+        rows = collection.query(
+            expr="id != ''",
+            output_fields=["source"],
+            limit=16384,  # high enough for any realistic collection
+        )
+        # Deduplicate and extract just the basename
+        seen, names = set(), []
+        for r in rows:
+            src = r.get("source", "")
+            base = os.path.basename(src)
+            if base and base not in seen:
+                seen.add(base)
+                names.append(base)
+        return sorted(names)
+    except Exception:
+        return []
 
 
 def process_uploaded_files(uploaded_files):
@@ -320,7 +354,7 @@ with st.sidebar:
     st.markdown('<div class="sidebar-section-header">Upload Documents</div>', unsafe_allow_html=True)
 
     if not st.session_state.authenticated:
-        st.caption("🔒 Login required to upload files")
+        st.caption("Login required to upload files")
         st.file_uploader(
             "Add files to knowledge base",
             type=["pdf", "png", "jpg", "jpeg", "tiff", "bmp"],
@@ -342,6 +376,9 @@ with st.sidebar:
                 with st.spinner("Processing…"):
                     try:
                         saved_files, chunk_count = process_uploaded_files(uploaded_files)
+                        for f in saved_files:
+                            if f not in st.session_state.uploaded_file_names:
+                                st.session_state.uploaded_file_names.append(f)
                         st.success(f"{len(saved_files)} file(s) indexed")
                         st.info(f"→ {chunk_count} chunks stored")
                         with st.expander("Processed files"):
@@ -358,7 +395,7 @@ with st.sidebar:
     st.markdown('<div class="sidebar-section-header">Database</div>', unsafe_allow_html=True)
 
     if not st.session_state.authenticated:
-        st.caption("🔒 Login required for database operations")
+        st.caption("Login required for database operations")
     else:
         # Step 1 — show the "Clear Database" button
         if not st.session_state.confirm_clear:
@@ -368,7 +405,7 @@ with st.sidebar:
 
         # Step 2 — confirmation dialog
         else:
-            st.warning("⚠️ This will permanently delete all vectors from Zilliz Cloud.")
+            st.warning("This will permanently delete all vectors from Zilliz Cloud.")
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("✓ Confirm Delete", type="primary", use_container_width=True):
@@ -397,6 +434,7 @@ with st.sidebar:
                                         os.remove(fp)
 
                             st.session_state.confirm_clear = False
+                            st.session_state.uploaded_file_names = []
                             st.success("✓ Database cleared successfully.")
                             st.balloons()
                             st.rerun()
@@ -412,15 +450,15 @@ with st.sidebar:
     # ── Files in data folder (auth-gated) ─────────────────────────────────────
     with st.expander("Files in Data Folder"):
         if not st.session_state.authenticated:
-            st.caption("🔒 Login to view stored files")
+            st.caption("Login to view stored files")
         else:
-            existing_files = sorted(os.listdir(DATA_PATH)) if os.path.exists(DATA_PATH) else []
-            if existing_files:
-                st.write(f"**{len(existing_files)} file(s)**")
-                for f in existing_files:
+            file_names = get_indexed_files()
+            if file_names:
+                st.write(f"**{len(file_names)} file(s)**")
+                for f in file_names:
                     st.text(f"• {f}")
             else:
-                st.caption("No files yet. Upload above to get started.")
+                st.caption("No files indexed yet. Upload above to get started.")
 
     st.divider()
     st.caption("Zilliz Cloud · Nvidia NIM · Nemotron · LangChain")
