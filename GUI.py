@@ -239,6 +239,8 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
+if "confirm_clear" not in st.session_state:
+    st.session_state.confirm_clear = False
 
 # ── Data path ─────────────────────────────────────────────────────────────────
 DATA_PATH = "/tmp/rag_data"
@@ -351,33 +353,54 @@ with st.sidebar:
     if not st.session_state.authenticated:
         st.caption("🔒 Login required for database operations")
     else:
-        if st.button("Clear Database", type="secondary", use_container_width=True):
-            try:
-                from data_preprocessing import clear_database
-            except ImportError as e:
-                # Show the REAL error, not a misleading langchain message
-                st.error(f"Import error: {str(e)}")
-                st.warning(
-                    "Fix: ensure all dependencies are installed and re-deploy. "
-                    f"Actual missing module: `{str(e)}`"
-                )
-            else:
-                confirm = st.checkbox("Confirm — this cannot be undone")
-                if confirm:
+        # Step 1 — show the "Clear Database" button
+        if not st.session_state.confirm_clear:
+            if st.button("Clear Database", type="secondary", use_container_width=True):
+                st.session_state.confirm_clear = True
+                st.rerun()
+
+        # Step 2 — confirmation dialog
+        else:
+            st.warning("⚠️ This will permanently delete all vectors from Zilliz Cloud.")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("✓ Confirm Delete", type="primary", use_container_width=True):
                     with st.spinner("Clearing database…"):
                         try:
-                            clear_database()
+                            # Safe import — isolate from top-level ollama import in data_preprocessing
+                            import importlib, sys
+
+                            # Temporarily stub 'ollama' if missing so the module loads
+                            if "ollama" not in sys.modules:
+                                from unittest.mock import MagicMock
+                                sys.modules["ollama"] = MagicMock()
+
+                            if "data_preprocessing" in sys.modules:
+                                dp = sys.modules["data_preprocessing"]
+                            else:
+                                import data_preprocessing as dp
+
+                            dp.clear_database()
+
+                            # Also wipe local temp files
                             if os.path.exists(DATA_PATH):
                                 for file in os.listdir(DATA_PATH):
                                     fp = os.path.join(DATA_PATH, file)
                                     if os.path.isfile(fp):
                                         os.remove(fp)
-                            st.success("Database cleared.")
+
+                            st.session_state.confirm_clear = False
+                            st.success("✓ Database cleared successfully.")
                             st.balloons()
+                            st.rerun()
                         except Exception as e:
-                            st.error(f"Error clearing database: {str(e)}")
-                else:
-                    st.caption("Check the box above to confirm deletion.")
+                            st.session_state.confirm_clear = False
+                            st.error(f"Error: {str(e)}")
+                            st.error(traceback.format_exc())
+            with col2:
+                if st.button("✕ Cancel", use_container_width=True):
+                    st.session_state.confirm_clear = False
+                    st.rerun()
 
     # ── Files in data folder (auth-gated) ─────────────────────────────────────
     with st.expander("Files in Data Folder"):
