@@ -2,6 +2,9 @@ streamlit==1.28.0
 pymilvus==2.5.16
 python-dotenv>=1.0.1,<2.0.0
 langchain-nvidia-ai-endpoints==0.3.7
-langchain-core==0.1.53
+langchain-core>=0.3.0,<0.4
+langchain==0.3.21  # Compatible with langchain-core 0.3.x
+langchain-text-splitters==0.3.7  # Compatible with langchain-core 0.3.x
+
 pillow==10.4.0
 requests==2.31.0
