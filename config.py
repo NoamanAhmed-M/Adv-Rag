@@ -26,8 +26,9 @@ except Exception:
     NVIDIA_OCR_MODEL = "nvidia/nemoretriever-ocr-v1"
 
 # ── Nvidia NIM ────────────────────────────────────────────────────────────────
-# Correct hosted endpoint for nemoretriever-ocr-v1 (NOT /v1/ocr, NOT /v1/chat/completions)
-NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/infer"
+# Hosted cloud endpoint for nemoretriever-ocr-v1
+# ai.api.nvidia.com/v1/cv/nvidia/nemoretriever-ocr  (NOT integrate.api.nvidia.com)
+NVIDIA_API_URL = "https://ai.api.nvidia.com/v1/cv/nvidia/nemoretriever-ocr"
 
 # DATA path (ephemeral on Streamlit Cloud — vectors live in Zilliz)
 DATA_PATH = "/tmp/rag_data"
