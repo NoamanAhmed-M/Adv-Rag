@@ -1,9 +1,7 @@
 streamlit==1.28.0
 pymilvus==2.5.16
 python-dotenv>=1.0.1,<2.0.0
-langchain-nvidia-ai-endpoints==0.3.7  # Updated from 0.0.3
+langchain-nvidia-ai-endpoints==0.3.7
 langchain-core==0.1.53
-langchain==0.1.20
-langchain-text-splitters==0.0.2
 pillow==10.4.0
 requests==2.31.0
