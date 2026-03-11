@@ -8,42 +8,245 @@ warnings.filterwarnings('ignore')
 import logging
 logging.getLogger('streamlit.watcher.local_sources_watcher').setLevel(logging.ERROR)
 
-# Import config to get admin password
 from config import ADMIN_PASSWORD
 
 st.set_page_config(
     page_title="RAG Chat Interface",
+    page_icon="🔍",
     layout="wide"
 )
 
 st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+    html, body, [class*="css"] {
+        font-family: 'IBM Plex Sans', sans-serif;
+    }
+
+    /* ── Dark industrial theme ── */
+    .stApp {
+        background-color: #0d0f12;
+        color: #c8d0d9;
+    }
+
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #111318;
+        border-right: 1px solid #1e2229;
+    }
+    [data-testid="stSidebar"] * {
+        font-family: 'IBM Plex Mono', monospace !important;
+        font-size: 0.82rem !important;
+    }
+
+    /* Chat input */
     .stChatInput {
         position: fixed;
         bottom: 20px;
         width: 70%;
         left: 15%;
     }
+    .stChatInput textarea {
+        background-color: #161a1f !important;
+        border: 1px solid #2a2f38 !important;
+        color: #c8d0d9 !important;
+        font-family: 'IBM Plex Sans', sans-serif !important;
+        border-radius: 8px !important;
+    }
+    .stChatInput textarea:focus {
+        border-color: #4a9eff !important;
+        box-shadow: 0 0 0 2px rgba(74,158,255,0.15) !important;
+    }
+
+    /* Chat messages */
     .stChatMessage {
-        padding: 10px;
+        background-color: #13161b !important;
+        border: 1px solid #1e2229 !important;
+        border-radius: 10px !important;
+        padding: 16px !important;
+        margin-bottom: 10px !important;
+    }
+
+    /* Buttons */
+    .stButton > button {
+        font-family: 'IBM Plex Mono', monospace !important;
+        font-size: 0.78rem !important;
+        letter-spacing: 0.05em !important;
+        border-radius: 6px !important;
+        border: 1px solid #2a2f38 !important;
+        background-color: #161a1f !important;
+        color: #8a95a3 !important;
+        transition: all 0.2s ease !important;
+    }
+    .stButton > button:hover {
+        border-color: #4a9eff !important;
+        color: #4a9eff !important;
+        background-color: rgba(74,158,255,0.08) !important;
+    }
+    .stButton > button[kind="primary"] {
+        background-color: #4a9eff !important;
+        color: #0d0f12 !important;
+        border-color: #4a9eff !important;
+        font-weight: 600 !important;
+    }
+    .stButton > button[kind="primary"]:hover {
+        background-color: #6ab4ff !important;
+        border-color: #6ab4ff !important;
+        color: #0d0f12 !important;
+    }
+
+    /* Inputs */
+    .stTextInput > div > div > input,
+    .stTextInput > div > div > input[type="password"] {
+        background-color: #161a1f !important;
+        border: 1px solid #2a2f38 !important;
+        color: #c8d0d9 !important;
+        font-family: 'IBM Plex Mono', monospace !important;
+        font-size: 0.82rem !important;
+        border-radius: 6px !important;
+    }
+    .stTextInput > div > div > input:focus {
+        border-color: #4a9eff !important;
+        box-shadow: 0 0 0 2px rgba(74,158,255,0.15) !important;
+    }
+
+    /* File uploader */
+    [data-testid="stFileUploader"] {
+        background-color: #13161b !important;
+        border: 1px dashed #2a2f38 !important;
+        border-radius: 8px !important;
+        padding: 8px !important;
+    }
+
+    /* Expander */
+    .streamlit-expanderHeader {
+        background-color: #13161b !important;
+        border: 1px solid #1e2229 !important;
+        border-radius: 6px !important;
+        color: #8a95a3 !important;
+        font-family: 'IBM Plex Mono', monospace !important;
+        font-size: 0.80rem !important;
+    }
+    .streamlit-expanderContent {
+        background-color: #0f1217 !important;
+        border: 1px solid #1e2229 !important;
+        border-top: none !important;
+        border-radius: 0 0 6px 6px !important;
+    }
+
+    /* Alerts */
+    .stAlert {
+        border-radius: 6px !important;
+        font-family: 'IBM Plex Mono', monospace !important;
+        font-size: 0.78rem !important;
+    }
+
+    /* Divider */
+    hr {
+        border-color: #1e2229 !important;
+    }
+
+    /* Spinner */
+    .stSpinner > div {
+        border-top-color: #4a9eff !important;
+    }
+
+    /* Code blocks */
+    code, pre {
+        font-family: 'IBM Plex Mono', monospace !important;
+        background-color: #0a0c0f !important;
+        color: #7dd3fc !important;
+        border: 1px solid #1e2229 !important;
+        border-radius: 4px !important;
+    }
+
+    /* Title */
+    h1 {
+        font-family: 'IBM Plex Mono', monospace !important;
+        font-weight: 500 !important;
+        letter-spacing: -0.02em !important;
+        color: #e8edf2 !important;
+    }
+    h2, h3 {
+        font-family: 'IBM Plex Mono', monospace !important;
+        color: #c8d0d9 !important;
+    }
+
+    /* Caption */
+    .stCaption, small {
+        color: #4a5260 !important;
+        font-family: 'IBM Plex Mono', monospace !important;
+        font-size: 0.72rem !important;
+    }
+
+    /* Checkbox */
+    .stCheckbox label {
+        font-family: 'IBM Plex Mono', monospace !important;
+        font-size: 0.78rem !important;
+        color: #8a95a3 !important;
+    }
+
+    /* Selectbox / other widgets label */
+    .stMarkdown p {
+        color: #c8d0d9;
+        line-height: 1.65;
+    }
+
+    /* Section headers in sidebar */
+    .sidebar-section-header {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 0.68rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #4a5260;
+        padding: 12px 0 4px 0;
+        border-bottom: 1px solid #1e2229;
+        margin-bottom: 10px;
+    }
+
+    /* Status badge */
+    .status-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-size: 0.70rem;
+        font-family: 'IBM Plex Mono', monospace;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+    }
+    .status-badge.connected {
+        background: rgba(34,197,94,0.1);
+        color: #4ade80;
+        border: 1px solid rgba(34,197,94,0.2);
+    }
+    .status-badge.disconnected {
+        background: rgba(239,68,68,0.1);
+        color: #f87171;
+        border: 1px solid rgba(239,68,68,0.2);
+    }
+    .status-badge.admin {
+        background: rgba(74,158,255,0.1);
+        color: #4a9eff;
+        border: 1px solid rgba(74,158,255,0.2);
     }
     </style>
 """, unsafe_allow_html=True)
 
+# ── Session state ─────────────────────────────────────────────────────────────
 if "messages" not in st.session_state:
     st.session_state.messages = []
-
-# Initialize authentication state
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
-# ── Data path: /tmp staging area (wiped on restart — vectors live in Zilliz Cloud)
+# ── Data path ─────────────────────────────────────────────────────────────────
 DATA_PATH = "/tmp/rag_data"
 os.makedirs(DATA_PATH, exist_ok=True)
 
 
 def process_uploaded_files(uploaded_files):
-    """Save uploaded files to Data/ then index them into Zilliz Cloud."""
+    """Save uploaded files to DATA_PATH then index them into Zilliz Cloud."""
     from data_preprocessing import load_documents, split_document, add_to_milvus
 
     saved_files = []
@@ -60,82 +263,78 @@ def process_uploaded_files(uploaded_files):
     return saved_files, len(chunks)
 
 
-# ── SIDEBAR ────────────────────────────────────────────────────────────────
+# ═════════════════════════════════════════════════════════════════════════════
+# SIDEBAR
+# ═════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.markdown("### Authentication")
-    
-    # Password input (always show if not authenticated)
+
+    # ── Auth ──────────────────────────────────────────────────────────────────
+    st.markdown('<div class="sidebar-section-header">Authentication</div>', unsafe_allow_html=True)
+
     if not st.session_state.authenticated:
-        password = st.text_input("Enter admin password:", type="password")
-        
-        if st.button("Login", use_container_width=True):
+        password = st.text_input("Admin password", type="password", label_visibility="collapsed",
+                                 placeholder="Enter admin password...")
+        if st.button("→ Login", use_container_width=True):
             if password == ADMIN_PASSWORD:
                 st.session_state.authenticated = True
-                st.success("Authenticated successfully!")
                 st.rerun()
             else:
                 st.error("Incorrect password")
     else:
-        st.success("Authenticated as Admin")
-        
-        # Logout button
+        st.markdown('<span class="status-badge admin">● ADMIN</span>', unsafe_allow_html=True)
+        st.markdown("")
         if st.button("Logout", use_container_width=True):
             st.session_state.authenticated = False
             st.rerun()
-    
-    st.divider()
-    
-    st.markdown("### Configuration")
 
-    # ── Cloud status indicator ────────────────────────────────────────────────
+    st.divider()
+
+    # ── Config / status ───────────────────────────────────────────────────────
+    st.markdown('<div class="sidebar-section-header">System Status</div>', unsafe_allow_html=True)
+
     from config import ZILLIZ_URI, ZILLIZ_TOKEN
     if ZILLIZ_URI and ZILLIZ_TOKEN:
-        st.success("Zilliz Cloud connected")
+        st.markdown('<span class="status-badge connected">● Zilliz Cloud</span>', unsafe_allow_html=True)
     else:
-        st.error("Zilliz credentials missing in .env")
+        st.markdown('<span class="status-badge disconnected">✕ Zilliz — credentials missing</span>', unsafe_allow_html=True)
 
-    st.divider()
-
-    # ── OCR backend warning ───────────────────────────────────────────────────
     from config import OCR_BACKEND
     if OCR_BACKEND in ("ollama", "both"):
         st.warning(
-            "OCR backend includes 'ollama'. "
-            "Ollama requires a local server and **will not work on cloud**. "
-            "Set `OCR_BACKEND=nvidia` in your environment variables.",
+            "OCR backend includes 'ollama' — this won't work on cloud. "
+            "Set `OCR_BACKEND=nvidia` in your environment.",
         )
 
-    # ── Upload Documents Section (Protected) ─────────────────────────────────
-    st.markdown("### Upload Documents")
-    
+    st.divider()
+
+    # ── Upload Documents ──────────────────────────────────────────────────────
+    st.markdown('<div class="sidebar-section-header">Upload Documents</div>', unsafe_allow_html=True)
+
     if not st.session_state.authenticated:
-        st.warning("Login required to upload files")
-        st.info("Please authenticate using the password field above to enable file uploads.")
-        
-        # Show disabled uploader (visual only)
+        st.caption("🔒 Login required to upload files")
         st.file_uploader(
             "Add files to knowledge base",
             type=["pdf", "png", "jpg", "jpeg", "tiff", "bmp"],
             accept_multiple_files=True,
             disabled=True,
-            help="Login required to upload files"
+            label_visibility="collapsed",
+            help="Login required"
         )
     else:
-        # Authenticated users can upload
         uploaded_files = st.file_uploader(
-            "Add files to knowledge base",
+            "PDF or image files",
             type=["pdf", "png", "jpg", "jpeg", "tiff", "bmp"],
             accept_multiple_files=True,
-            help="Supported: PDF and image files"
+            label_visibility="collapsed",
         )
 
         if uploaded_files:
             if st.button("Add to Database", type="primary", use_container_width=True):
-                with st.spinner("Processing documents..."):
+                with st.spinner("Processing…"):
                     try:
                         saved_files, chunk_count = process_uploaded_files(uploaded_files)
-                        st.success(f"{len(saved_files)} file(s) added")
-                        st.info(f"→ {chunk_count} chunks indexed")
+                        st.success(f"{len(saved_files)} file(s) indexed")
+                        st.info(f"→ {chunk_count} chunks stored")
                         with st.expander("Processed files"):
                             for f in saved_files:
                                 st.text(f"• {f}")
@@ -146,57 +345,44 @@ with st.sidebar:
 
     st.divider()
 
-    # ── Database Management Section (Protected) ─────────────────────────────
-    st.markdown("### Database Management")
-    
+    # ── Database Management ───────────────────────────────────────────────────
+    st.markdown('<div class="sidebar-section-header">Database</div>', unsafe_allow_html=True)
+
     if not st.session_state.authenticated:
-        st.warning(" Login required for database operations")
-        st.info("Please authenticate to clear the database.")
+        st.caption("🔒 Login required for database operations")
     else:
-        # Clear DB button (only shown when authenticated)
         if st.button("Clear Database", type="secondary", use_container_width=True):
             try:
                 from data_preprocessing import clear_database
             except ImportError as e:
+                # Show the REAL error, not a misleading langchain message
                 st.error(f"Import error: {str(e)}")
-                st.info("This might be due to missing langchain_community. Installing required packages...")
-                
-                # Fallback: Try alternative import or provide instructions
                 st.warning(
-                    "The `langchain_community` module is missing. To fix this:\n\n"
-                    "1. Add to requirements.txt:\n"
-                    "   ```\n"
-                    "   langchain-community>=0.2.0\n"
-                    "   ```\n"
-                    "2. Re-deploy the app\n\n"
-                    "For now, database operations are disabled."
+                    "Fix: ensure all dependencies are installed and re-deploy. "
+                    f"Actual missing module: `{str(e)}`"
                 )
             else:
-                # Only runs if import was successful
-                # Confirm deletion
-                confirm = st.checkbox("I understand this will delete all documents and cannot be undone")
+                confirm = st.checkbox("Confirm — this cannot be undone")
                 if confirm:
-                    with st.spinner("Clearing database..."):
+                    with st.spinner("Clearing database…"):
                         try:
                             clear_database()
-                            
-                            # Also clear local files
                             if os.path.exists(DATA_PATH):
                                 for file in os.listdir(DATA_PATH):
-                                    file_path = os.path.join(DATA_PATH, file)
-                                    if os.path.isfile(file_path):
-                                        os.remove(file_path)
-                            
-                            st.success("Database cleared successfully!")
-                            st.info("Re-upload your documents to rebuild.")
+                                    fp = os.path.join(DATA_PATH, file)
+                                    if os.path.isfile(fp):
+                                        os.remove(fp)
+                            st.success("Database cleared.")
                             st.balloons()
                         except Exception as e:
                             st.error(f"Error clearing database: {str(e)}")
                 else:
-                    st.info("Please confirm to proceed with deletion")
-    with st.expander("Files in Data folder"):
+                    st.caption("Check the box above to confirm deletion.")
+
+    # ── Files in data folder (auth-gated) ─────────────────────────────────────
+    with st.expander("Files in Data Folder"):
         if not st.session_state.authenticated:
-            st.warning("Login required to view files")
+            st.caption("🔒 Login to view stored files")
         else:
             existing_files = sorted(os.listdir(DATA_PATH)) if os.path.exists(DATA_PATH) else []
             if existing_files:
@@ -207,49 +393,53 @@ with st.sidebar:
                 st.caption("No files yet. Upload above to get started.")
 
     st.divider()
-    st.markdown("**Stack**")
     st.caption("Zilliz Cloud · Nvidia NIM · Nemotron · LangChain")
-    st.caption("Duplicate chunks skipped automatically (source:page:chunk_index)")
 
 
-# ── MAIN CHAT UI (outside sidebar) ─────────────────────────────────────────
+# ═════════════════════════════════════════════════════════════════════════════
+# MAIN CHAT
+# ═════════════════════════════════════════════════════════════════════════════
 st.title("RAG Document Chat")
 st.caption("Retrieval-Augmented Generation over your documents")
 
-# Display chat messages
+# Display message history
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
         if message["role"] == "assistant":
             hal = message.get("hal_score")
-            if hal == "yes":
-                st.markdown("grounded in documents")
-            elif hal == "no":
-                st.markdown("may not be fully grounded")
-
-            sources = message.get("sources", [])
+            sources  = message.get("sources", [])
             segments = message.get("segments", [])
+
             if sources:
                 with st.expander(f"Sources ({len(sources)})"):
+                    if hal == "yes":
+                        st.success("Grounded in documents")
+                    elif hal == "no":
+                        st.warning("May not be fully grounded")
+
                     for i, src in enumerate(sources):
                         st.markdown(f"**Source:** `{src}`")
                         if i < len(segments) and segments[i]:
                             st.code(segments[i], language=None)
+                        if i < len(sources) - 1:
+                            st.divider()
 
 # Chat input
-if prompt := st.chat_input("Ask a question about your documents..."):
+if prompt := st.chat_input("Ask a question about your documents…"):
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("Searching documents..."):
+        with st.spinner("Searching documents…"):
             try:
                 from Query import query_rag
                 answer_text, result, hal_score = query_rag(prompt)
 
+                # Resolve display text
                 if isinstance(answer_text, str) and answer_text:
                     display_text = answer_text
                 elif hasattr(result, "content"):
@@ -261,6 +451,7 @@ if prompt := st.chat_input("Ask a question about your documents..."):
 
                 st.markdown(display_text)
 
+                # Resolve score
                 if hasattr(hal_score, "binary_score"):
                     score_val = hal_score.binary_score
                 elif isinstance(hal_score, str):
@@ -268,6 +459,7 @@ if prompt := st.chat_input("Ask a question about your documents..."):
                 else:
                     score_val = "not_applicable"
 
+                # Resolve sources / segments
                 sources, segments = [], []
                 if hasattr(result, "source"):
                     sources = result.source if isinstance(result.source, list) else [result.source]
@@ -290,30 +482,23 @@ if prompt := st.chat_input("Ask a question about your documents..."):
                             st.divider()
 
                 st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": display_text,
-                    "sources": sources,
+                    "role":     "assistant",
+                    "content":  display_text,
+                    "sources":  sources,
                     "segments": segments,
                     "hal_score": score_val,
                 })
 
             except RuntimeError as e:
-                # Collection doesn't exist yet — friendly message
                 msg = str(e)
                 st.warning(msg, icon="📭")
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": msg,
-                })
+                st.session_state.messages.append({"role": "assistant", "content": msg})
 
             except Exception as e:
                 error_msg = f"Error: {str(e)}"
                 st.error(error_msg)
                 st.error(traceback.format_exc())
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": error_msg,
-                })
+                st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
 st.divider()
 st.caption("Built with Python · LangChain · Zilliz Cloud · Nvidia NIM")
