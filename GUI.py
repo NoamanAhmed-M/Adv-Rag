@@ -194,15 +194,17 @@ with st.sidebar:
                             st.error(f"Error clearing database: {str(e)}")
                 else:
                     st.info("Please confirm to proceed with deletion")
-
     with st.expander("Files in Data folder"):
-        existing_files = sorted(os.listdir(DATA_PATH)) if os.path.exists(DATA_PATH) else []
-        if existing_files:
-            st.write(f"**{len(existing_files)} file(s)**")
-            for f in existing_files:
-                st.text(f"• {f}")
+        if not st.session_state.authenticated:
+            st.warning("Login required to view files")
         else:
-            st.caption("No files yet. Upload above to get started.")
+            existing_files = sorted(os.listdir(DATA_PATH)) if os.path.exists(DATA_PATH) else []
+            if existing_files:
+                st.write(f"**{len(existing_files)} file(s)**")
+                for f in existing_files:
+                    st.text(f"• {f}")
+            else:
+                st.caption("No files yet. Upload above to get started.")
 
     st.divider()
     st.markdown("**Stack**")
