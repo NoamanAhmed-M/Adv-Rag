@@ -19,7 +19,6 @@ except Exception:
 
 st.set_page_config(
     page_title="RAG Chat Interface",
-    page_icon="🔍",
     layout="wide"
 )
 
@@ -320,7 +319,7 @@ with st.sidebar:
     st.markdown('<div class="sidebar-section-header">Upload Documents</div>', unsafe_allow_html=True)
 
     if not st.session_state.authenticated:
-        st.caption("🔒 Login required to upload files")
+        st.caption("Login required to upload files")
         st.file_uploader(
             "Add files to knowledge base",
             type=["pdf", "png", "jpg", "jpeg", "tiff", "bmp"],
@@ -358,7 +357,7 @@ with st.sidebar:
     st.markdown('<div class="sidebar-section-header">Database</div>', unsafe_allow_html=True)
 
     if not st.session_state.authenticated:
-        st.caption("🔒 Login required for database operations")
+        st.caption("Login required for database operations")
     else:
         # Step 1 — show the "Clear Database" button
         if not st.session_state.confirm_clear:
@@ -368,7 +367,7 @@ with st.sidebar:
 
         # Step 2 — confirmation dialog
         else:
-            st.warning("⚠️ This will permanently delete all vectors from Zilliz Cloud.")
+            st.warning("This will permanently delete all vectors from Zilliz Cloud.")
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("✓ Confirm Delete", type="primary", use_container_width=True):
