@@ -1,50 +1,41 @@
 """
-config.py — Zilliz Cloud only configuration.
-Supports both .env (local) and Streamlit Cloud secrets (deployed).
+config.py — Simplified version
 """
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
+# Try to get from Streamlit secrets first, then environment variables
+try:
+    import streamlit as st
+    ZILLIZ_URI = st.secrets.get("ZILLIZ_URI", os.getenv("ZILLIZ_URI", ""))
+    ZILLIZ_TOKEN = st.secrets.get("ZILLIZ_TOKEN", os.getenv("ZILLIZ_TOKEN", ""))
+    NVIDIA_API_KEY = st.secrets.get("NVIDIA_API_KEY", os.getenv("NVIDIA_API_KEY", ""))
+    OCR_BACKEND = st.secrets.get("OCR_BACKEND", os.getenv("OCR_BACKEND", "nvidia"))
+    COLLECTION_NAME = st.secrets.get("COLLECTION_NAME", os.getenv("COLLECTION_NAME", "documents"))
+    EMBEDDING_DIM = int(st.secrets.get("EMBEDDING_DIM", os.getenv("EMBEDDING_DIM", "4096")))
+    LLM_MODEL = st.secrets.get("LLM_MODEL", os.getenv("LLM_MODEL", "nvidia/nemotron-3-nano-30b-a3b"))
+except:
+    # Fallback to environment variables only
+    ZILLIZ_URI = os.getenv("ZILLIZ_URI", "")
+    ZILLIZ_TOKEN = os.getenv("ZILLIZ_TOKEN", "")
+    NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
+    OCR_BACKEND = os.getenv("OCR_BACKEND", "nvidia")
+    COLLECTION_NAME = os.getenv("COLLECTION_NAME", "documents")
+    EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "4096"))
+    LLM_MODEL = os.getenv("LLM_MODEL", "nvidia/nemotron-3-nano-30b-a3b")
 
-def _get(key: str, default: str = "") -> str:
-    """Read from Streamlit secrets first, then .env, then default."""
-    try:
-        import streamlit as st
-        if key in st.secrets:
-            return st.secrets[key]
-    except Exception:
-        pass
-    return os.getenv(key, default)
-
-# ── Zilliz Cloud ──────────────────────────────────────────────────────────────
-ZILLIZ_URI   = _get("ZILLIZ_URI")
-ZILLIZ_TOKEN = _get("ZILLIZ_TOKEN")
-
-# ── NVIDIA ────────────────────────────────────────────────────────────────────
-NVIDIA_API_KEY   = _get("NVIDIA_API_KEY")
-NVIDIA_API_URL   = "https://integrate.api.nvidia.com/v1/ocr"
+# NVIDIA URLs
+NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/ocr"
 NVIDIA_OCR_MODEL = "nvidia/nemoretriever-ocr-v1"
-
-# ── OCR ───────────────────────────────────────────────────────────────────────
-OCR_BACKEND = _get("OCR_BACKEND", "nvidia")
-
-# ── App ───────────────────────────────────────────────────────────────────────
-COLLECTION_NAME = _get("COLLECTION_NAME", "documents")
-EMBEDDING_DIM   = int(_get("EMBEDDING_DIM", "4096"))
-DATA_PATH       = "/tmp/rag_data"
-LLM_MODEL       = _get("LLM_MODEL", "nvidia/nemotron-3-nano-30b-a3b")
-
+DATA_PATH = "/tmp/rag_data"
 
 def get_milvus_connection_params() -> dict:
     if not ZILLIZ_URI or not ZILLIZ_TOKEN:
         raise ValueError("ZILLIZ_URI or ZILLIZ_TOKEN is missing")
     return {
         "alias": "default",
-        "uri":   ZILLIZ_URI,
+        "uri": ZILLIZ_URI,
         "token": ZILLIZ_TOKEN,
     }
-
 
 def print_config():
     print("=" * 50)
