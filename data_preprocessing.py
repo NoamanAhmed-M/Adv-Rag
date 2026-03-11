@@ -47,7 +47,7 @@ def nvidia_ocr_image(image_path: str) -> str:
     Response format : { "data": [{ "text_detections": [{ "text_prediction": { "text": "..." } }] }] }
     Docs: https://docs.nvidia.com/nim/ingestion/image-ocr/latest/api-reference.html
     """
-    endpoint = "https://integrate.api.nvidia.com/v1/infer"
+    endpoint = "https://ai.api.nvidia.com/v1/cv/nvidia/nemoretriever-ocr"
     print(f"  [Nvidia OCR] {Path(image_path).name} -> {endpoint}")
 
     b64_data, media_type = _read_image_b64(image_path)
