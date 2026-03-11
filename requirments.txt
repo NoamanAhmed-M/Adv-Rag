@@ -1,0 +1,14 @@
+streamlit
+pymilvus
+langchain>=0.2.0
+langchain-community>=0.2.0
+langchain-core>=0.2.0
+langchain-text-splitters>=0.2.0
+langchain-nvidia-ai-endpoints
+python-dotenv
+pypdf>=4.0.0
+pdf2image>=1.17.0
+pillow>=10.0.0
+pydantic>=2.0.0
+httpx
+ollama
