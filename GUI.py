@@ -10,6 +10,13 @@ logging.getLogger('streamlit.watcher.local_sources_watcher').setLevel(logging.ER
 
 from config import ADMIN_PASSWORD
 
+# Pre-import Query at startup so the first prompt doesn't silently fail
+# (lazy import inside the chat block causes a silent miss on the first Streamlit rerun)
+try:
+    from Query import query_rag as _query_rag_preload  # noqa: F401
+except Exception:
+    pass  # Will surface a proper error when the user queries
+
 st.set_page_config(
     page_title="RAG Chat Interface",
     page_icon="🔍",
@@ -459,7 +466,7 @@ if prompt := st.chat_input("Ask a question about your documents…"):
     with st.chat_message("assistant"):
         with st.spinner("Searching documents…"):
             try:
-                from Query import query_rag
+                from Query import query_rag  # already cached in sys.modules after preload
                 answer_text, result, hal_score = query_rag(prompt)
 
                 # Resolve display text
@@ -511,17 +518,20 @@ if prompt := st.chat_input("Ask a question about your documents…"):
                     "segments": segments,
                     "hal_score": score_val,
                 })
+                st.rerun()  # force re-render so first message always appears
 
             except RuntimeError as e:
                 msg = str(e)
                 st.warning(msg, icon="📭")
                 st.session_state.messages.append({"role": "assistant", "content": msg})
+                st.rerun()
 
             except Exception as e:
                 error_msg = f"Error: {str(e)}"
                 st.error(error_msg)
                 st.error(traceback.format_exc())
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
+                st.rerun()
 
 st.divider()
 st.caption("Built with Python · LangChain · Zilliz Cloud · Nvidia NIM")
