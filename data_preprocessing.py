@@ -39,20 +39,28 @@ def _read_image_b64(image_path: str) -> tuple[str, str]:
 
 
 def nvidia_ocr_image(image_path: str) -> str:
-    print(f"  [Nvidia OCR] Sending {Path(image_path).name} to {NVIDIA_API_URL}")
+    """
+    OCR via Nvidia-hosted NeMo Retriever OCR v1.
+    Hosted endpoint : https://integrate.api.nvidia.com/v1/infer
+    Payload format  : { "input": [{ "type": "image_url", "url": "data:<mime>;base64,<b64>" }],
+                        "merge_levels": ["paragraph"] }
+    Response format : { "data": [{ "text_detections": [{ "text_prediction": { "text": "..." } }] }] }
+    Docs: https://docs.nvidia.com/nim/ingestion/image-ocr/latest/api-reference.html
+    """
+    endpoint = "https://integrate.api.nvidia.com/v1/infer"
+    print(f"  [Nvidia OCR] {Path(image_path).name} -> {endpoint}")
+
     b64_data, media_type = _read_image_b64(image_path)
 
+    # Only png and jpeg are supported — convert tiff/bmp at call site if needed
     payload = {
-        "messages": [
+        "input": [
             {
-                "content": [
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:{media_type};base64,{b64_data}"}
-                    }
-                ]
+                "type": "image_url",
+                "url":  f"data:{media_type};base64,{b64_data}",
             }
-        ]
+        ],
+        "merge_levels": ["paragraph"],
     }
     headers = {
         "Authorization": f"Bearer {NVIDIA_API_KEY}",
@@ -60,19 +68,33 @@ def nvidia_ocr_image(image_path: str) -> str:
         "Accept":        "application/json",
     }
 
-    response = httpx.post(NVIDIA_API_URL, json=payload, headers=headers, timeout=60)
+    response = httpx.post(endpoint, json=payload, headers=headers, timeout=120)
     print(f"  [Nvidia OCR] Response status: {response.status_code}")
     response.raise_for_status()
 
-    pages = response.json().get("pages", [])
-    text = "\n".join(page.get("text", "") for page in pages)
-    print(f"  [Nvidia OCR] Extracted {len(text)} chars across {len(pages)} page(s)")
+    # Parse response: data[].text_detections[].text_prediction.text
+    result = response.json()
+    texts  = []
+    for page in result.get("data", []):
+        for det in page.get("text_detections", []):
+            t = det.get("text_prediction", {}).get("text", "").strip()
+            if t:
+                texts.append(t)
+    text = "\n".join(texts)
+    print(f"  [Nvidia OCR] Extracted {len(text)} chars from {len(texts)} detection(s)")
     return text
 
 
 def ocr_image(image_path: str) -> str:
-    """Run OCR on an image file using the configured backend (nvidia only on cloud)."""
+    """Run OCR on an image file. Uses Nvidia NIM only — ollama not supported on cloud."""
     print(f"[OCR] Processing: {Path(image_path).name} (backend={OCR_BACKEND})")
+
+    if OCR_BACKEND not in ("nvidia", "both"):
+        raise ValueError(
+            f"OCR_BACKEND='{OCR_BACKEND}' is not supported on cloud. "
+            "Set OCR_BACKEND=nvidia in your .env file."
+        )
+
     try:
         text = nvidia_ocr_image(image_path)
         print(f"  [OCR] Nvidia succeeded for {Path(image_path).name}")
