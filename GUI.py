@@ -157,21 +157,41 @@ with st.sidebar:
         # Clear DB button (only shown when authenticated)
         if st.button("🗑️ Clear Database", type="secondary", use_container_width=True):
             try:
-                # Try to import the clear_database function
-                try:
-                    from data_preprocessing import clear_database
-                except ImportError as e:
-                    st.error(f"Import error: {str(e)}")
-                    st.info("This might be due to missing langchain_community. Installing required packages...")
-                    
-                    # Fallback: Try alternative import or provide instructions
-                    st.warning(
-                        "The `langchain_community` module is missing. To fix this:\n\n"
-                        "1. Add to requirements.txt:\n"
-                        "   ```\n"
-                        "   langchain-community>=0.2.0\n"
-                        "   ```\n"
-                        "2. Re-deploy the app\n\n"
-                        "For now, database operations are disabled."
-                    )
-                    st.stop()
+                from data_preprocessing import clear_database
+            except ImportError as e:
+                st.error(f"Import error: {str(e)}")
+                st.info("This might be due to missing langchain_community. Installing required packages...")
+                
+                # Fallback: Try alternative import or provide instructions
+                st.warning(
+                    "The `langchain_community` module is missing. To fix this:\n\n"
+                    "1. Add to requirements.txt:\n"
+                    "   ```\n"
+                    "   langchain-community>=0.2.0\n"
+                    "   ```\n"
+                    "2. Re-deploy the app\n\n"
+                    "For now, database operations are disabled."
+                )
+            else:
+                # Only runs if import was successful
+                # Confirm deletion
+                confirm = st.checkbox("I understand this will delete all documents and cannot be undone")
+                if confirm:
+                    with st.spinner("Clearing database..."):
+                        try:
+                            clear_database()
+                            
+                            # Also clear local files
+                            if os.path.exists(DATA_PATH):
+                                for file in os.listdir(DATA_PATH):
+                                    file_path = os.path.join(DATA_PATH, file)
+                                    if os.path.isfile(file_path):
+                                        os.remove(file_path)
+                            
+                            st.success("✅ Database cleared successfully!")
+                            st.info("Re-upload your documents to rebuild.")
+                            st.balloons()
+                        except Exception as e:
+                            st.error(f"Error clearing database: {str(e)}")
+                else:
+                    st.info("Please confirm to proceed with deletion")
