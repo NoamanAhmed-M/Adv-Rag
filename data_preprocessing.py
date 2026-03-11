@@ -24,8 +24,6 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tiff", ".bmp"}
 PDF_EXTENSIONS   = {".pdf"}
 
 
-
-
 # ══════════════════════════════════════════════════════════════════════════════
 # OCR helpers
 # ══════════════════════════════════════════════════════════════════════════════
@@ -73,14 +71,17 @@ def nvidia_ocr_image(image_path: str) -> str:
 
 
 def ocr_image(image_path: str) -> str:
+    """Run OCR on an image file using the configured backend (nvidia only on cloud)."""
     print(f"[OCR] Processing: {Path(image_path).name} (backend={OCR_BACKEND})")
     try:
         text = nvidia_ocr_image(image_path)
         print(f"  [OCR] Nvidia succeeded for {Path(image_path).name}")
         return text
     except Exception as nvidia_err:
-        print(f"  [OCR] Nvidia failed ({nvidia_err})")
-        return ""  
+        print(f"  [OCR] Nvidia failed: {nvidia_err}")
+        raise
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Milvus helpers
 # ══════════════════════════════════════════════════════════════════════════════
@@ -294,6 +295,10 @@ def add_to_milvus(chunks: list[Document], similarity_threshold=0.999, batch_size
     print("\n[Insert] Insert complete.")
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# Clear database
+# ══════════════════════════════════════════════════════════════════════════════
+
 def clear_database():
     print(f"[Clear] Connecting to Milvus to drop collection '{COLLECTION_NAME}'...")
     connect_milvus()
@@ -303,13 +308,6 @@ def clear_database():
     else:
         print(f"[Clear] Collection '{COLLECTION_NAME}' does not exist — nothing to drop.")
 
-    if os.path.exists(DATA_PATH):
-        for file in os.listdir(DATA_PATH):
-            file_path = os.path.join(DATA_PATH, file)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
-                print(f"[Clear] Deleted local file: {file_path}")
-    print("[Clear] Local staging area cleared.")
 
 def main():
     print_config()
