@@ -10,12 +10,10 @@ logging.getLogger('streamlit.watcher.local_sources_watcher').setLevel(logging.ER
 
 from config import ADMIN_PASSWORD
 
-# Pre-import Query at startup so the first prompt doesn't silently fail
-# (lazy import inside the chat block causes a silent miss on the first Streamlit rerun)
 try:
-    from Query import query_rag as _query_rag_preload  # noqa: F401
+    from Query import query_rag as _query_rag_preload  
 except Exception:
-    pass  # Will surface a proper error when the user queries
+    pass 
 
 st.set_page_config(
     page_title="RAG Chat Interface",
@@ -272,9 +270,8 @@ def get_indexed_files() -> list[str]:
         rows = collection.query(
             expr="id != ''",
             output_fields=["source"],
-            limit=16384,  # high enough for any realistic collection
+            limit=16384, 
         )
-        # Deduplicate and extract just the basename
         seen, names = set(), []
         for r in rows:
             src = r.get("source", "")
