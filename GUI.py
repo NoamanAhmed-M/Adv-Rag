@@ -14,7 +14,6 @@ from theme import inject_css, init_settings
 
 st.set_page_config(
     page_title="RAG Chat",
-    page_icon="💬",
     layout="wide",
 )
 inject_css()
