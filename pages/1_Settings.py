@@ -621,7 +621,7 @@ with tab_retrieval:
         mode = st.radio(
             "Select chunking strategy",
             options=["standard", "proposition"],
-            format_func=lambda x: " Standard (character split)" if x == "standard" else "🧩 Proposition (LLM-based atomic facts)",
+            format_func=lambda x: " Standard (character split)" if x == "standard" else " Proposition (LLM-based atomic facts)",
             index=0 if st.session_state.get("chunking_mode", "standard") == "standard" else 1,
             horizontal=True,
         )
