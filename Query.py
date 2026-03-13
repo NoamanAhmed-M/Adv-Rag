@@ -12,9 +12,10 @@ import os
 
 os.environ["NVIDIA_API_KEY"] = NVIDIA_API_KEY
 
-TOP_K           = 10    # retrieve more for reranker to work with
-RERANK_TOP_N    = 5     # keep top 5 after reranking
-SCORE_THRESHOLD = 0.25  # drop anything below this before reranking
+# These are fallback defaults — callers should pass explicit values.
+TOP_K           = 10
+RERANK_TOP_N    = 5
+SCORE_THRESHOLD = 0.25
 
 # ── Reranker ──────────────────────────────────────────────────────────────────
 reranker = NVIDIARerank(
@@ -87,26 +88,40 @@ def rerank_docs(query: str, docs_with_scores: list) -> list:
         return [doc for doc, _ in docs_with_scores]
 
 
-def query_rag(query_text: str):
+def query_rag(
+    query_text: str,
+    *,
+    top_k: int               = TOP_K,
+    rerank_top_n: int        = RERANK_TOP_N,
+    score_threshold: float   = SCORE_THRESHOLD,
+    use_query_rewrite: bool  = True,
+    use_relevancy_check: bool= True,
+    use_reranker: bool       = True,
+    use_hallucination: bool  = True,
+):
 
     print("\n" + "="*50)
     print(f"QUERY: {query_text}")
     print("="*50)
 
     # ── Step 1: Rewrite query ────────────────────────────────────────────────
-    print("[STEP 1] Rewriting query...")
-    search_query = rewrite_query(query_text)
+    if use_query_rewrite:
+        print("[STEP 1] Rewriting query...")
+        search_query = rewrite_query(query_text)
+    else:
+        print("[STEP 1] Query rewrite disabled — using original query.")
+        search_query = query_text
 
     # ── Step 2: Search Milvus ────────────────────────────────────────────────
     print("[STEP 2] Searching Milvus...")
-    results = search_milvus(search_query)
+    results = search_milvus(search_query, top_k=top_k)
     print(f"[STEP 2] Returned {len(results)} results")
     for i, (doc, score) in enumerate(results):
         print(f"  [{i+1}] score={score:.4f} | preview={doc.page_content[:80]}...")
 
     # ── Step 3: Score pre-filter ─────────────────────────────────────────────
-    print(f"[STEP 3] Score pre-filter (threshold={SCORE_THRESHOLD})...")
-    above_threshold = [(doc, score) for doc, score in results if score >= SCORE_THRESHOLD]
+    print(f"[STEP 3] Score pre-filter (threshold={score_threshold})...")
+    above_threshold = [(doc, score) for doc, score in results if score >= score_threshold]
     print(f"[STEP 3] {len(above_threshold)}/{len(results)} docs above threshold")
 
     if not above_threshold:
@@ -118,16 +133,24 @@ def query_rag(query_text: str):
         return no_data_response, no_data_response, "not_applicable"
 
     # ── Step 4: Rerank ───────────────────────────────────────────────────────
-    # Use original question for reranking — measures relevance to what user asked
-    print("[STEP 4] Reranking with nvidia/nv-rerankqa-mistral-4b-v3...")
-    reranked_docs = rerank_docs(query_text, above_threshold)
+    if use_reranker:
+        print("[STEP 4] Reranking with nvidia/nv-rerankqa-mistral-4b-v3...")
+        # Temporarily override the reranker top_n with the runtime value
+        reranker.top_n = rerank_top_n
+        reranked_docs = rerank_docs(query_text, above_threshold)
+    else:
+        print("[STEP 4] Reranker disabled — using score-ordered results.")
+        reranked_docs = [doc for doc, _ in above_threshold[:rerank_top_n]]
 
     # ── Step 5: LLM relevancy check ──────────────────────────────────────────
-    # Use original question here too — not the rewritten query
-    print("[STEP 5] Running relevancy check...")
-    docs_with_scores_reranked = [(doc, 1.0) for doc in reranked_docs]
-    docs_to_use = relevancy_check(query_text, docs_with_scores_reranked)
-    print(f"[STEP 5] {len(docs_to_use)}/{len(reranked_docs)} docs passed")
+    if use_relevancy_check:
+        print("[STEP 5] Running relevancy check...")
+        docs_with_scores_reranked = [(doc, 1.0) for doc in reranked_docs]
+        docs_to_use = relevancy_check(query_text, docs_with_scores_reranked)
+        print(f"[STEP 5] {len(docs_to_use)}/{len(reranked_docs)} docs passed")
+    else:
+        print("[STEP 5] Relevancy check disabled — using all reranked docs.")
+        docs_to_use = reranked_docs
 
     if not docs_to_use:
         print("[STEP 5] All docs filtered — no relevant content in knowledge base")
@@ -146,9 +169,13 @@ def query_rag(query_text: str):
     print(f"[STEP 6] Response: {response_llm[:150]}...")
 
     # ── Step 7: Hallucination check ───────────────────────────────────────────
-    print("[STEP 7] Hallucination check...")
-    hallucination_binary_score = hallucination_check(docs_to_use, response_llm)
-    print(f"[STEP 7] Score: {hallucination_binary_score}")
+    if use_hallucination:
+        print("[STEP 7] Hallucination check...")
+        hallucination_binary_score = hallucination_check(docs_to_use, response_llm)
+        print(f"[STEP 7] Score: {hallucination_binary_score}")
+    else:
+        print("[STEP 7] Hallucination check disabled.")
+        hallucination_binary_score = "not_applicable"
 
     # ── Step 8: Citations ─────────────────────────────────────────────────────
     print("[STEP 8] Building citations...")
