@@ -59,7 +59,7 @@ with st.sidebar:
         f"Rerank-N **{st.session_state.get('rerank_top_n', 5)}**  ·  "
         f"Threshold **{st.session_state.get('score_threshold', 0.25):.2f}**"
     )
-    st.caption("Go to ⚙️ Settings to configure the pipeline.")
+    st.caption("Go to Settings to configure the pipeline.")
     st.divider()
     st.caption("Zilliz · Nvidia NIM · Nemotron · LangChain")
 
@@ -67,7 +67,7 @@ with st.sidebar:
 # ═════════════════════════════════════════════════════════════════════════════
 # MAIN CHAT
 # ═════════════════════════════════════════════════════════════════════════════
-st.title("💬  RAG Document Chat")
+st.title("RAG Document Chat")
 st.caption("Retrieval-Augmented Generation over your documents · Configure & manage documents in ⚙️ Settings")
 
 for message in st.session_state.messages:
