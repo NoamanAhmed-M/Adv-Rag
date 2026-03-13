@@ -10,7 +10,6 @@ from config import ADMIN_PASSWORD
 
 st.set_page_config(
     page_title="Settings · RAG",
-    page_icon="⚙️",
     layout="wide",
 )
 inject_css()
@@ -101,7 +100,6 @@ def get_indexed_files_with_counts() -> list[tuple[str, str, int]]:
         collection.load()
         rows = collection.query(expr="id != ''", output_fields=["source"], limit=16384)
 
-        # Tally chunks per source path
         counts: dict[str, int] = {}
         full_paths: dict[str, str] = {}
         for r in rows:
@@ -109,7 +107,7 @@ def get_indexed_files_with_counts() -> list[tuple[str, str, int]]:
             base = os.path.basename(src)
             if base:
                 counts[base]     = counts.get(base, 0) + 1
-                full_paths[base] = src   # keep last seen full path
+                full_paths[base] = src  
         return sorted((base, full_paths[base], counts[base]) for base in counts)
     except Exception as e:
         st.error(f"Could not list indexed files: {e}")
@@ -135,7 +133,6 @@ def delete_file_from_milvus(source_basename: str) -> int:
     collection = Collection(COLLECTION_NAME)
     collection.load()
 
-    # Fetch IDs of all chunks belonging to this file
     rows = collection.query(
         expr="id != ''",
         output_fields=["id", "source"],
@@ -153,7 +150,6 @@ def delete_file_from_milvus(source_basename: str) -> int:
         """Escape backslashes so Milvus expression parser doesn't choke on Windows paths."""
         return pk.replace("\\", "\\\\")
 
-    # Batch into groups of 50 to stay well under expression length limits
     BATCH = 50
     total_deleted = 0
     for i in range(0, len(ids_to_delete), BATCH):
@@ -211,7 +207,7 @@ def process_uploaded_files(uploaded_files, progress_callback=None):
 # ═════════════════════════════════════════════════════════════════════════════
 header_col, logout_col = st.columns([5, 1])
 with header_col:
-    st.title("⚙️  Settings & Document Management")
+    st.title("Settings & Document Management")
     st.caption("All pipeline changes apply immediately to the next query. Document operations persist in Zilliz Cloud.")
 with logout_col:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -221,10 +217,10 @@ with logout_col:
 
 # ── Live pipeline status bar ──────────────────────────────────────────────────
 steps = [
-    ("use_query_rewrite",       "① Query Rewrite"),
-    ("use_relevancy_check",     "② Relevancy Check"),
-    ("use_reranker",            "③ Reranker"),
-    ("use_hallucination_check", "④ Hallucination Check"),
+    ("use_query_rewrite",       "Query Rewrite"),
+    ("use_relevancy_check",     "Relevancy Check"),
+    ("use_reranker",            "Reranker"),
+    ("use_hallucination_check", "Hallucination Check"),
 ]
 cols = st.columns(len(steps))
 for col, (key, label) in zip(cols, steps):
@@ -247,10 +243,10 @@ st.markdown("<br>", unsafe_allow_html=True)
 # TABS
 # ═════════════════════════════════════════════════════════════════════════════
 tab_docs, tab_pipeline, tab_retrieval, tab_generation = st.tabs([
-    "📂  Documents",
-    "🔀  Pipeline",
-    "🔍  Retrieval & Chunking",
-    "🤖  Generation & Display",
+    "Documents",
+    "Pipeline",
+    "Retrieval & Chunking",
+    "Generation & Display",
 ])
 
 
@@ -277,7 +273,7 @@ with tab_docs:
                 size_kb = round(len(uf.getvalue()) / 1024, 1)
                 st.markdown(
                     f'<div style="font-family:\'IBM Plex Mono\',monospace;font-size:0.75rem;'
-                    f'color:#8a95a3;padding:2px 0;">📄 {uf.name} <span style="color:#4a5260">({size_kb} KB)</span></div>',
+                    f'color:#8a95a3;padding:2px 0;"> {uf.name} <span style="color:#4a5260">({size_kb} KB)</span></div>',
                     unsafe_allow_html=True,
                 )
 
@@ -285,16 +281,16 @@ with tab_docs:
             mode = st.session_state.get("chunking_mode", "standard")
             if mode == "proposition":
                 st.info(
-                    "🧩 **Proposition mode** — LLM will extract atomic facts from each document. "
+                    "**Proposition mode** — LLM will extract atomic facts from each document. "
                     "Indexing will be slow. Configure in the Retrieval & Chunking tab.",
-                    icon="⏱️",
+                   
                 )
             else:
                 st.info(
-                    f"📄 **Standard mode** — chunk size **{st.session_state.get('chunk_size', 800)}** / "
+                    f"**Standard mode** — chunk size **{st.session_state.get('chunk_size', 800)}** / "
                     f"overlap **{st.session_state.get('chunk_overlap', 80)}** chars. "
                     "Change in the Retrieval & Chunking tab.",
-                    icon="ℹ️",
+
                 )
 
             if st.button("⬆  Add to Database", type="primary", use_container_width=True):
@@ -315,7 +311,7 @@ with tab_docs:
                         if f not in st.session_state.uploaded_file_names:
                             st.session_state.uploaded_file_names.append(f)
                     prog_bar.progress(100, text="Done")
-                    st.success(f"✓ {len(saved)} file(s) indexed — {n_chunks} chunk(s) stored.")
+                    st.success(f"{len(saved)} file(s) indexed — {n_chunks} chunk(s) stored.")
                     st.balloons()
                     st.rerun()
                 except Exception as e:
@@ -354,7 +350,7 @@ with tab_docs:
                     st.markdown(
                         f'<div style="font-family:\'IBM Plex Mono\',monospace;font-size:0.74rem;'
                         f'color:#8a95a3;padding:4px 0;line-height:1.5;">'
-                        f'📄 {base}'
+                        f'{base}'
                         f'<span style="color:#4a5260;font-size:0.68rem;margin-left:8px;">'
                         f'({chunk_count} chunk{"s" if chunk_count != 1 else ""})</span>'
                         f'</div>',
@@ -439,7 +435,7 @@ with tab_docs:
                 st.session_state.confirm_clear = True
                 st.rerun()
         else:
-            st.error("⚠️  This will **permanently delete all vectors** from Zilliz Cloud. This cannot be undone.")
+            st.error("This will **permanently delete all vectors** from Zilliz Cloud. This cannot be undone.")
             c1, c2 = st.columns(2)
             with c1:
                 if st.button("✓  Confirm Delete", type="primary", use_container_width=True):
@@ -534,7 +530,7 @@ with tab_pipeline:
         # ── Pipeline cost summary ─────────────────────────────────────────────
         st.markdown('<div class="setting-card"><div class="setting-card-title">Estimated LLM Calls / Query</div>', unsafe_allow_html=True)
 
-        base = 1  # answer generation
+        base = 1  
         extra = 0
         details = [("Answer generation", 1)]
         if st.session_state.use_query_rewrite:
@@ -620,13 +616,12 @@ with tab_retrieval:
         st.info(
             "Chunking settings only apply when uploading **new** documents. "
             "Already-indexed chunks are not re-split.",
-            icon="ℹ️",
         )
 
         mode = st.radio(
             "Select chunking strategy",
             options=["standard", "proposition"],
-            format_func=lambda x: "📄 Standard (character split)" if x == "standard" else "🧩 Proposition (LLM-based atomic facts)",
+            format_func=lambda x: " Standard (character split)" if x == "standard" else "🧩 Proposition (LLM-based atomic facts)",
             index=0 if st.session_state.get("chunking_mode", "standard") == "standard" else 1,
             horizontal=True,
         )
@@ -667,10 +662,10 @@ with tab_retrieval:
                 border-radius:8px;padding:12px 14px;font-family:\'IBM Plex Mono\',monospace;font-size:0.75rem;
                 color:#8a95a3;line-height:1.7;">
                 <b style="color:#4a9eff">How it works:</b><br>
-                1️⃣ &nbsp;Documents are pre-split into intermediate chunks<br>
-                2️⃣ &nbsp;LLM decomposes each chunk into atomic factual statements<br>
-                3️⃣ &nbsp;Each proposition is graded on accuracy, clarity, completeness, conciseness<br>
-                4️⃣ &nbsp;Passing propositions are indexed — one vector per atomic fact
+                1️ &nbsp;Documents are pre-split into intermediate chunks<br>
+                2️ &nbsp;LLM decomposes each chunk into atomic factual statements<br>
+                3️ &nbsp;Each proposition is graded on accuracy, clarity, completeness, conciseness<br>
+                4️ &nbsp;Passing propositions are indexed — one vector per atomic fact
                 </div>''',
                 unsafe_allow_html=True,
             )
@@ -706,17 +701,16 @@ with tab_retrieval:
                 )
                 score = st.session_state.prop_min_quality_score
                 if score <= 3:
-                    st.caption("🟡 Lenient — most propositions pass.")
+                    st.caption("Lenient — most propositions pass.")
                 elif score <= 6:
-                    st.caption("🟠 Balanced — moderate filtering.")
+                    st.caption("Balanced — moderate filtering.")
                 else:
-                    st.caption("🔴 Strict — only high-quality propositions are indexed.")
+                    st.caption("Strict — only high-quality propositions are indexed.")
 
             st.markdown("")
             st.warning(
-                "⚠️ Proposition chunking makes **2 LLM calls per intermediate chunk** "
+                "Proposition chunking makes **2 LLM calls per intermediate chunk** "
                 "(1 extraction + 1 grading). Indexing will be significantly slower than standard chunking.",
-                icon="⏱️",
             )
 
         st.markdown("</div>", unsafe_allow_html=True)
